@@ -1,0 +1,17 @@
+{
+  "type": "crm-card",
+  "data": {
+    "title": "Deal Compliance Checker",
+    "description": "Shows deal properties and RLD compliance rules",
+    "uid": "deal_compliance_card",
+    "location": "crm.record.tab",
+    "module": {
+      "file": "Example.jsx"
+    },
+    "previewImage": {
+      "file": "assets/example-card-preview.png",
+      "altText": "Deal compliance checker showing seat count, dates, and compliance status"
+    },
+    "objectTypes": [{ "name": "deals" }]
+  }
+}

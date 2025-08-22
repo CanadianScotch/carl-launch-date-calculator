@@ -1,0 +1,24 @@
+{
+  "name": "Deal Compliance Checker",
+  "description": "A custom card that shows deal properties and compliance rules for RLD timing on Deal records.",
+  "uid": "deal_compliance_app",
+  "scopes": [
+    "crm.objects.contacts.read", 
+    "crm.objects.contacts.write",
+    "crm.objects.deals.read",
+    "crm.objects.deals.write"
+  ],
+  "public": false,
+  "extensions": {
+    "crm": {
+      "cards": [
+        {
+          "file": "extensions/example-card.json"
+        }
+      ]
+    }
+  },
+  "webhooks": {
+    "file": "./webhooks/webhooks.json"
+  }
+}
