@@ -1,9 +1,5 @@
 {
   "appFunctions": {
-    "myFunc": {
-      "file": "example-function.js",
-      "secrets": []
-    },
     "getDealProperties": {
       "file": "get-deal-properties.js",
       "secrets": []
@@ -14,10 +10,6 @@
     },
     "slackOverrideNotification": {
       "file": "slack-override-notification.js",
-      "secrets": ["SLACK_WEBHOOK_URL"]
-    },
-    "slackButtonHandler": {
-      "file": "slack-button-handler.js",
       "secrets": ["SLACK_WEBHOOK_URL"]
     }
   }
