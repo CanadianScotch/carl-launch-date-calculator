@@ -2,11 +2,11 @@
   "appFunctions": {
     "getDealProperties": {
       "file": "get-deal-properties.js",
-      "secrets": ["PRIVATE_APP_ACCESS_TOKEN"]
+      "secrets": []
     },
     "updateDealProperty": {
       "file": "update-deal-property.js",
-      "secrets": ["PRIVATE_APP_ACCESS_TOKEN"]
+      "secrets": []
     },
     "slackOverrideNotification": {
       "file": "slack-override-notification.js",
