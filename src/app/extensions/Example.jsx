@@ -6,9 +6,7 @@ import {
   Button,
   Input,
   LoadingSpinner,
-  Alert,
   hubspot,
-  Tooltip,
 } from "@hubspot/ui-extensions";
 
 // Define the extension to be run within the Hubspot CRM
