@@ -378,9 +378,7 @@ const Extension = ({ context, runServerless, sendAlert }) => {
   const [canEditApproval, setCanEditApproval] = useState(false);
   const [isRequestingOverride, setIsRequestingOverride] = useState(false);
   const [userCanApprove, setUserCanApprove] = useState(false); // NEW: Track approval permission
-  const [customCloseDate, setCustomCloseDate] = useState("");
-  const [isValidatingCloseDate, setIsValidatingCloseDate] = useState(false);
-  const [closeDateValidationResult, setCloseDateValidationResult] = useState(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const dealId = context.crm.objectId;
 
@@ -1062,91 +1060,49 @@ const Extension = ({ context, runServerless, sendAlert }) => {
       setIsUpdating(false);
     }
   };
-  // Handle close date validation and update
-const handleValidateCustomCloseDate = async () => {
-  if (!customCloseDate) {
-    setCloseDateValidationResult({ 
-      success: false, 
-      message: "Please enter a close date first"
-    });
-    return;
-  }
-
-  const customDate = parseDate(customCloseDate);
-  if (!customDate || isNaN(customDate.getTime())) {
-    setCloseDateValidationResult({ 
-      success: false, 
-      message: "Invalid date format. Please use MM/DD/YYYY or select from calendar"
-    });
-    return;
-  }
-
-  // Check if close date is in the past (this is the only rule!)
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  customDate.setHours(0, 0, 0, 0);
   
-  if (customDate < today) {
-    setCloseDateValidationResult({ 
-      success: false, 
-      message: "❌ Close date cannot be in the past. Please select a future date."
-    });
-    return;
-  }
-
-  // Date is valid - update it!
+  // Handle manual refresh of deal data
+  const handleRefreshData = async () => {
   try {
-    setIsValidatingCloseDate(true);
-    setCloseDateValidationResult(null);
-    const formattedDate = formatDateForAPI(customDate);
+    setIsRefreshing(true);
     
-    console.log('=== CLOSE DATE UPDATE ===');
-    console.log('Updating close date to:', formattedDate);
-    
-    const result = await runServerless({
-      name: "updateDealProperty",
-      parameters: {
+    const { response } = await runServerless({ 
+      name: "getDealProperties", 
+      parameters: { 
         dealId: dealId,
-        property: "closedate",
-        value: formattedDate
-      }
+        properties: [
+          'seat_count___final', 
+          'closedate', 
+          'requested_launch_date', 
+          'is_closed', 
+          'dealname',
+          'compliance_status',
+          'override_request_status', 
+          'override_requested_by',
+          'override_request_date',
+          'override_approved_by',
+          'override_approval_date',
+          'approved_close_date',
+          'approved_rld'
+        ]
+      } 
     });
-
-    const response = result.response || result;
     
-    if (response && response.success) {
-      // Update local state immediately
-      setDealData(prev => ({
-        ...prev,
-        closedate: formattedDate
-      }));
-      
-      setCustomCloseDate("");
-      setCloseDateValidationResult({ 
-        success: true, 
-        message: `Close Date updated to ${formatDate(formattedDate)}!`
-      });
-      
-      sendAlert({ 
-        message: `✅ Close Date updated to ${formatDate(formattedDate)}!`, 
-        variant: "success" 
-      });
-    } else {
-      const errorMsg = response?.error || "Unknown error occurred";
-      setCloseDateValidationResult({ 
-        success: false, 
-        message: `Failed to update Close Date: ${errorMsg}`
-      });
-    }
+    setDealData(response);
+    sendAlert({ 
+      message: "✅ Deal data refreshed!", 
+      variant: "success" 
+    });
   } catch (err) {
-    setCloseDateValidationResult({ 
-      success: false, 
-      message: `Error updating Close Date: ${err.message}`
+    sendAlert({ 
+      message: `❌ Error refreshing data: ${err.message}`, 
+      variant: "error" 
     });
   } finally {
-    setIsValidatingCloseDate(false);
+    setIsRefreshing(false);
   }
 };
+
   // Show loading spinner while data loads
   if (loading) {
     return (
@@ -1204,40 +1160,18 @@ const handleValidateCustomCloseDate = async () => {
           <Text format={{ fontSize: "small" }}>{formatDate(dealData?.closedate)}</Text>
         </Flex>
 
-        {/* Close Date Editor - Add this after the property display section */}
-      <Flex direction="column" gap="extraSmall">
-        <Text format={{ fontWeight: "demibold", fontSize: "small" }}>📅 Update Close Date:</Text>
-        <Flex direction="row" gap="extraSmall" align="center">
-          <Input
-            name="customCloseDate"
-            label=""
-            placeholder="MM/DD/YYYY"
-            value={customCloseDate}
-            onInput={setCustomCloseDate}
-            type="date"
-            size="small"
-            style={{ flex: "1" }}
-          />
-          <Button 
-            onClick={handleValidateCustomCloseDate}
-            disabled={isValidatingCloseDate || !customCloseDate}
-            variant="primary"
-            size="medium"
-            style={{ height: "32px" }}
-          >
-            {isValidatingCloseDate ? "🔄" : "💾 Save"}
-          </Button>
-        </Flex>
-        
-        {/* Close Date Validation Results */}
-        {closeDateValidationResult && (
-          <Tag variant={closeDateValidationResult.success ? "success" : "error"} size="small">
-            {closeDateValidationResult.success ? "✅" : "❌"} {closeDateValidationResult.message}
-          </Tag>
-        )}
-        
+      {/* Refresh Button */}
+      <Flex direction="row" justify="start" gap="small">
+        <Button 
+          onClick={handleRefreshData}
+          disabled={isRefreshing}
+          variant="secondary"
+          size="small"
+        >
+          {isRefreshing ? "🔄 Refreshing..." : "🔄 Refresh Data"}
+        </Button>
         <Text variant="microcopy" format={{ fontSize: "extraSmall" }}>
-          💡 Close date must be today or in the future
+          💡 Click after updating close date or seat count on the record
         </Text>
       </Flex>
         
