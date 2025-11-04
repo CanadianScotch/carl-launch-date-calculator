@@ -42,7 +42,7 @@ exports.main = async (context = {}) => {
     });
 
     // Default properties if none specified
-    const propertiesToFetch = properties || ['seat_count___final', 'closedate', 'requested_launch_date'];
+    const propertiesToFetch = properties || ['seat_count___final', 'closedate', 'requested_launch_date', 'pipeline'];
     console.log('Properties to fetch:', propertiesToFetch);
 
     // Fetch deal properties from HubSpot API

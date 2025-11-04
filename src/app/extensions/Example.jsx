@@ -193,13 +193,16 @@ const calculatePerfectRLD = (closeDate, currentRLD) => {
 };
 
 // Helper function to check all compliance rules
-const calculateAllCompliance = (closeDate, rldDate, isClosed) => {
+const calculateAllCompliance = (closeDate, rldDate, isClosed, pipeline) => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
   const violations = [];
   
-  // Rule 1: Close Date in past (highest priority)
+  // Check if this is an Expansions pipeline deal
+  const isExpansionsPipeline = pipeline === "782785325"; 
+  
+  // Rule 1: Close Date in past (highest priority) - ALWAYS enforced
   if (closeDate) {
     const close = parseDate(closeDate);
     close.setHours(0, 0, 0, 0);
@@ -214,7 +217,7 @@ const calculateAllCompliance = (closeDate, rldDate, isClosed) => {
     }
   }
   
-  // Rule 2: RLD in past (high priority)
+  // Rule 2: RLD in past (high priority) - ALWAYS enforced
   if (rldDate) {
     const rld = parseDate(rldDate);
     rld.setHours(0, 0, 0, 0);
@@ -229,13 +232,13 @@ const calculateAllCompliance = (closeDate, rldDate, isClosed) => {
     }
   }
   
-  // Rule 3: RLD timing requirements (lower priority)
-  if (closeDate && rldDate) {
+  // Rules 3 & 4: RLD timing requirements - SKIP for Expansions pipeline
+  if (!isExpansionsPipeline && closeDate && rldDate) {
     const close = parseDate(closeDate);
     const rld = parseDate(rldDate);
     
     const minimumRLD = new Date(close);
-    minimumRLD.setDate(close.getDate() + 28); // Back to 4 weeks minimum
+    minimumRLD.setDate(close.getDate() + 28); // 4 weeks minimum
 
     if (rld < close) {
       violations.push({
@@ -254,8 +257,8 @@ const calculateAllCompliance = (closeDate, rldDate, isClosed) => {
     }
   }
   
-  // Rule 4: RLD not on correct day (Monday/Tuesday for holidays)
-  if (rldDate) {
+  // Rule 5: RLD not on correct day - SKIP for Expansions pipeline
+  if (!isExpansionsPipeline && rldDate) {
     const rld = parseDate(rldDate);
     const dayOfWeek = rld.getDay();
     const isMonday = dayOfWeek === 1;
@@ -292,7 +295,7 @@ const calculateAllCompliance = (closeDate, rldDate, isClosed) => {
     }
   }
   
-  // Rule 5: Missing data
+  // Rule 6: Missing data - ALWAYS enforced
   if (!closeDate || !rldDate) {
     violations.push({
       priority: 6,
@@ -308,7 +311,7 @@ const calculateAllCompliance = (closeDate, rldDate, isClosed) => {
     return [{
       priority: 0,
       type: "compliant",
-      message: "All rules compliant",
+      message: isExpansionsPipeline ? "Expansions pipeline - flexible timing" : "All rules compliant",
       severity: "success"
     }];
   }
@@ -403,6 +406,7 @@ const Extension = ({ context, runServerless, sendAlert }) => {
               'requested_launch_date', 
               'is_closed', 
               'dealname',
+              'pipeline',
               // State management properties
               'compliance_status',
               'override_request_status', 
@@ -438,7 +442,8 @@ const Extension = ({ context, runServerless, sendAlert }) => {
       const violations = calculateAllCompliance(
         dealData.closedate, 
         dealData.requested_launch_date, 
-        dealData.is_closed
+        dealData.is_closed,
+        dealData.pipeline
       );
       
       const isCompliant = violations.length === 1 && violations[0].type === "compliant";
@@ -665,7 +670,7 @@ const Extension = ({ context, runServerless, sendAlert }) => {
           const actualDealName = dealData.dealname || `${dealData.seat_count___final || 'Unknown'} Seat Deal`;
           
           // Calculate violations for the new date
-          const newViolations = calculateAllCompliance(dealData.closedate, formattedDate, dealData.is_closed);
+          const newViolations = calculateAllCompliance(dealData.closedate, formattedDate, dealData.is_closed, dealData.pipeline);
           const violationMessages = newViolations
             .filter(v => v.type !== "compliant")
             .map(v => v.message);
@@ -756,7 +761,7 @@ const Extension = ({ context, runServerless, sendAlert }) => {
       return;
     }
 
-    const customViolations = calculateAllCompliance(dealData.closedate, customRLD, dealData.is_closed);
+    const customViolations = calculateAllCompliance(dealData.closedate, customRLD, dealData.is_closed, dealData.pipeline);
     const hasViolations = customViolations.some(v => v.type !== "compliant");
 
     if (hasViolations) {
@@ -863,7 +868,7 @@ const Extension = ({ context, runServerless, sendAlert }) => {
       
       if (response && response.success) {
         // Test compliance of the new date
-        const testViolations = calculateAllCompliance(dealData.closedate, formattedDate, dealData.is_closed);
+        const testViolations = calculateAllCompliance(dealData.closedate, formattedDate, dealData.is_closed, dealData.pipeline);
         const isNewDateCompliant = testViolations.length === 1 && testViolations[0].type === "compliant";
         
         console.log('New date violations:', testViolations);
@@ -1125,7 +1130,7 @@ const Extension = ({ context, runServerless, sendAlert }) => {
 
   // Calculate all compliance violations
   const violations = dealData ? 
-    calculateAllCompliance(dealData.closedate, dealData.requested_launch_date, dealData.is_closed) :
+    calculateAllCompliance(dealData.closedate, dealData.requested_launch_date, dealData.is_closed, dealData.pipeline) :
     [{ type: "missing_data", message: "No data", severity: "warning" }];
 
   // Calculate perfect RLD for suggestion
