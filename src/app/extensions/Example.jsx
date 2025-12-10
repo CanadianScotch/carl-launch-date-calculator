@@ -207,7 +207,7 @@ const calculateAllCompliance = (closeDate, rldDate, isClosed, pipeline) => {
     const close = parseDate(closeDate);
     close.setHours(0, 0, 0, 0);
     
-    if (close < today && isClosed !== "true" && isClosed !== true) {
+    if (close < today && isClosed !== "1" && isClosed !== 1) {
       violations.push({
         priority: 1,
         type: "close_date_past",
@@ -404,7 +404,7 @@ const Extension = ({ context, runServerless, sendAlert }) => {
               'seat_count___final', 
               'closedate', 
               'requested_launch_date', 
-              'is_closed', 
+              'hs_is_closed_count', 
               'dealname',
               'pipeline',
               // State management properties
@@ -442,7 +442,7 @@ const Extension = ({ context, runServerless, sendAlert }) => {
       const violations = calculateAllCompliance(
         dealData.closedate, 
         dealData.requested_launch_date, 
-        dealData.is_closed,
+        dealData.hs_is_closed_count,
         dealData.pipeline
       );
       
@@ -670,7 +670,7 @@ const Extension = ({ context, runServerless, sendAlert }) => {
           const actualDealName = dealData.dealname || `${dealData.seat_count___final || 'Unknown'} Seat Deal`;
           
           // Calculate violations for the new date
-          const newViolations = calculateAllCompliance(dealData.closedate, formattedDate, dealData.is_closed, dealData.pipeline);
+          const newViolations = calculateAllCompliance(dealData.closedate, formattedDate, dealData.hs_is_closed_count, dealData.pipeline);
           const violationMessages = newViolations
             .filter(v => v.type !== "compliant")
             .map(v => v.message);
@@ -761,7 +761,7 @@ const Extension = ({ context, runServerless, sendAlert }) => {
       return;
     }
 
-    const customViolations = calculateAllCompliance(dealData.closedate, customRLD, dealData.is_closed, dealData.pipeline);
+    const customViolations = calculateAllCompliance(dealData.closedate, customRLD, dealData.hs_is_closed_count, dealData.pipeline);
     const hasViolations = customViolations.some(v => v.type !== "compliant");
 
     if (hasViolations) {
@@ -868,7 +868,7 @@ const Extension = ({ context, runServerless, sendAlert }) => {
       
       if (response && response.success) {
         // Test compliance of the new date
-        const testViolations = calculateAllCompliance(dealData.closedate, formattedDate, dealData.is_closed, dealData.pipeline);
+        const testViolations = calculateAllCompliance(dealData.closedate, formattedDate, dealData.hs_is_closed_count, dealData.pipeline);
         const isNewDateCompliant = testViolations.length === 1 && testViolations[0].type === "compliant";
         
         console.log('New date violations:', testViolations);
@@ -1079,7 +1079,7 @@ const Extension = ({ context, runServerless, sendAlert }) => {
           'seat_count___final', 
           'closedate', 
           'requested_launch_date', 
-          'is_closed', 
+          'hs_is_closed_count', 
           'dealname',
           'compliance_status',
           'override_request_status', 
@@ -1109,7 +1109,7 @@ const Extension = ({ context, runServerless, sendAlert }) => {
 };
 
 // NEW: Check if deal is closed - show summary view instead of compliance checker
-  if (dealData && (dealData.is_closed === "true" || dealData.is_closed === true)) {
+  if (dealData && (dealData.hs_is_closed_count === "1" || dealData.hs_is_closed_count === 1)) {
     const hasOverride = dealData.override_request_status === "approved";
     const wasAutoApproved = dealData.override_approved_by === "Auto-approved (Compliant)";
     
@@ -1227,7 +1227,7 @@ const Extension = ({ context, runServerless, sendAlert }) => {
 
   // Calculate all compliance violations
   const violations = dealData ? 
-    calculateAllCompliance(dealData.closedate, dealData.requested_launch_date, dealData.is_closed, dealData.pipeline) :
+    calculateAllCompliance(dealData.closedate, dealData.requested_launch_date, dealData.hs_is_closed_count, dealData.pipeline) :
     [{ type: "missing_data", message: "No data", severity: "warning" }];
 
   // Calculate perfect RLD for suggestion
