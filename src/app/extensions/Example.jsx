@@ -1108,6 +1108,103 @@ const Extension = ({ context, runServerless, sendAlert }) => {
   }
 };
 
+// NEW: Check if deal is closed - show summary view instead of compliance checker
+  if (dealData && (dealData.is_closed === "true" || dealData.is_closed === true)) {
+    const hasOverride = dealData.override_request_status === "approved";
+    const wasAutoApproved = dealData.override_approved_by === "Auto-approved (Compliant)";
+    
+    return (
+      <Flex direction="column" gap="medium">
+        {/* Header */}
+        <Flex direction="column" gap="extraSmall">
+          <Text format={{ fontWeight: "bold", fontSize: "large" }}>
+            📋 Deal Closed - Final Summary
+          </Text>
+          <Text variant="microcopy">
+            This deal is closed. Dates are locked and compliance checking is disabled.
+          </Text>
+        </Flex>
+
+        {/* Deal Name */}
+        <Flex direction="column" gap="extraSmall">
+          <Text format={{ fontWeight: "demibold", fontSize: "small" }}>Deal Name:</Text>
+          <Text format={{ fontSize: "small" }}>{dealData.dealname || "Unknown Deal"}</Text>
+        </Flex>
+
+        {/* Seat Count */}
+        <Flex direction="column" gap="extraSmall">
+          <Text format={{ fontWeight: "demibold", fontSize: "small" }}>Seat Count:</Text>
+          <Text format={{ fontSize: "small" }}>{dealData.seat_count___final || "Not set"}</Text>
+        </Flex>
+
+        {/* Close Date */}
+        <Flex direction="column" gap="extraSmall">
+          <Text format={{ fontWeight: "demibold", fontSize: "small" }}>Close Date:</Text>
+          <Text format={{ fontSize: "small" }}>{formatDate(dealData.closedate)}</Text>
+        </Flex>
+
+        {/* Requested Launch Date */}
+        <Flex direction="column" gap="extraSmall">
+          <Text format={{ fontWeight: "demibold", fontSize: "small" }}>Requested Launch Date:</Text>
+          <Text format={{ fontSize: "small" }}>{formatDate(dealData.requested_launch_date)}</Text>
+        </Flex>
+
+        {/* Approval Status */}
+        <Flex direction="column" gap="extraSmall" 
+              style={{ 
+                padding: "12px", 
+                backgroundColor: hasOverride ? "#f0f9f0" : "#e3f2fd",
+                borderRadius: "4px",
+                borderLeft: hasOverride ? "3px solid #00875a" : "3px solid #2196f3"
+              }}>
+          <Text format={{ fontWeight: "demibold", fontSize: "small" }}>Approval Status:</Text>
+          
+          {hasOverride ? (
+            <>
+              {wasAutoApproved ? (
+                <>
+                  <Tag variant="success" size="small">✅ Auto-Approved (Compliant)</Tag>
+                  <Text variant="microcopy" format={{ fontSize: "extraSmall" }}>
+                    Deal met all compliance rules at time of closure
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Tag variant="success" size="small">✅ Manager Override Approved</Tag>
+                  <Text variant="microcopy" format={{ fontSize: "extraSmall" }}>
+                    Approved by: {dealData.override_approved_by?.split(' (')[0] || "Unknown"}
+                  </Text>
+                  <Text variant="microcopy" format={{ fontSize: "extraSmall" }}>
+                    Approval date: {formatDate(dealData.override_approval_date)}
+                  </Text>
+                </>
+              )}
+            </>
+          ) : (
+            <>
+              <Tag variant="warning" size="small">⚠️ No Override Record</Tag>
+              <Text variant="microcopy" format={{ fontSize: "extraSmall" }}>
+                This deal was closed before CARL was implemented or without recorded approval
+              </Text>
+            </>
+          )}
+        </Flex>
+
+        {/* Info footer */}
+        <Flex direction="column" gap="extraSmall" 
+              style={{ 
+                padding: "8px", 
+                backgroundColor: "#f5f5f5",
+                borderRadius: "4px"
+              }}>
+          <Text variant="microcopy" format={{ fontSize: "extraSmall" }}>
+            ℹ️ Compliance checking is only active for open deals. To modify dates on this closed deal, please contact your administrator.
+          </Text>
+        </Flex>
+      </Flex>
+    );
+  }
+  
   // Show loading spinner while data loads
   if (loading) {
     return (
